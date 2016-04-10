@@ -1,0 +1,12 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Xperia Flashtool
+GenericName=Flashtool
+Comment= Flashtool is a S1 flashing software that works for all Sony phones from X10 to Xperia Z -series.
+Exec=kdesu /usr/share/java/xperia-flashtool/FlashTool
+StartupNotify=true
+Icon=xperia-flashtool
+Type=Application
+Categories=Utility;
+
+

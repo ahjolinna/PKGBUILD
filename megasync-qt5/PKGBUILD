@@ -1,0 +1,80 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=('megasync')
+pkgver=2.8.0
+pkgrel=1
+pkgdesc="Sync your files to your Mega account (qt5 version)"
+arch=('x86_64')
+url="https://mega.nz/#sync"
+screenshot='http://i.imgur.com/nsHIHM8.png'
+license=('custom')
+depends=('qt5-base' 'hicolor-icon-theme' 'openssl' 'sqlite3' 'c-ares' 'crypto++' 'ca-certificates' 'libpng' 'curl' 'libuv')
+makedepends=('git' 'qt5-tools')
+#optdepends=('sni-qt: fix systray issue on KDE and LXQt')
+source=("git+https://github.com/meganz/MEGAsync.git#tag=v2_8_0_0_Linux"
+        "git+https://github.com/meganz/sdk.git"
+	"megasync.install")
+
+sha256sums=('SKIP'
+            'SKIP'
+            '5c76e59fd1b2b689ae709d3cb735ce512ffdaf92e8c1c953e415879d82d84af8')
+_qmake_config="release"
+
+conflicts=('megatools' 'sni-qt')
+    provides=('megasync')
+    install=megasync.install
+
+prepare() {
+    cd MEGAsync
+    git submodule init
+    git config submodule.src/MEGASync/mega.url "$srcdir/sdk"
+    git submodule update
+}
+
+build() {
+    export QT_SELECT=5
+
+    cd MEGAsync/src/MEGASync/mega
+    ./autogen.sh
+    ./configure \
+    --disable-silent-rules \
+    --disable-curl-checks \
+    --disable-megaapi \
+    --with-cryptopp \
+    --without-sodium \
+    --with-zlib \
+    --with-sqlite \
+    --with-cares \
+    --with-curl \
+    --without-freeimage \
+    --without-readline \
+    --without-termcap \
+    --disable-posix-threads \
+    --disable-examples \
+    --prefix=/usr
+
+    cd ../..
+
+    qmake CONFIG+="$_qmake_config" MEGA.pro
+    lrelease MEGASync/MEGASync.pro
+    make
+}
+
+package() {
+    cd MEGAsync
+    install -Dm 644 LICENCE.md $pkgdir/usr/share/licenses/megasync-qt5/LICENCE.md
+    install -Dm 644 installer/terms.txt $pkgdir/usr/share/licenses/megasync-qt5/terms.txt
+
+    cd src/MEGASync
+    install -Dm 755 megasync $pkgdir/usr/bin/megasync
+
+    cd platform/linux/data
+    install -Dm 644 megasync.desktop $pkgdir/usr/share/applications/megasync.desktop
+
+    cd icons/hicolor
+    for size in 16x16 32x32 48x48 128x128 256x256
+    do
+        install -Dm 644 $size/apps/mega.png $pkgdir/usr/share/icons/hicolor/$size/apps/mega.png
+    done
+}
+

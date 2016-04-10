@@ -1,0 +1,97 @@
+*** a/steam	2015-05-05 20:18:12.000000000 +0200
+--- b/steam	2015-10-17 15:40:20.882051149 +0200
+***************
+*** 21,32 ****
+  {
+  	style=$1
+  	shift
+! 	if ! zenity "$style" --text="$*" 2>/dev/null; then
+  		case "$style" in
+  		--error)
+  			title=$"Error"
+  			;;
+! 		--warning)
+  			title=$"Warning"
+  			;;
+  		*)
+--- 21,32 ----
+  {
+  	style=$1
+  	shift
+! 	if ! kdialog "$style" "$*" 2>/dev/null; then
+  		case "$style" in
+  		--error)
+  			title=$"Error"
+  			;;
+! 		--sorry)
+  			title=$"Warning"
+  			;;
+  		*)
+***************
+*** 63,69 ****
+  	fi
+  
+  	# Get the default data path
+! 	STEAM_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+  	case "$STEAMPACKAGE" in
+  		steam)
+  			CLASSICSTEAMDIR="$HOME/Steam"
+--- 63,70 ----
+  	fi
+  
+  	# Get the default data path
+! 	HOME=~
+! 	STEAM_DATA_HOME=$HOME/.local/share
+  	case "$STEAMPACKAGE" in
+  		steam)
+  			CLASSICSTEAMDIR="$HOME/Steam"
+***************
+*** 106,118 ****
+  	# put the Steam icon on the user's desktop
+  	# try to read ~/.config/user-dirs.dirs to get the current desktop configuration
+  	# http://www.freedesktop.org/wiki/Software/xdg-user-dirs
+! 	test -f "${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs" && source "${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
+! 	DESKTOP_DIR="${XDG_DESKTOP_DIR:-$HOME/Desktop}"
+  
+! 	if [ -d "$DESKTOP_DIR" ]; then
+! 		cp "/usr/share/applications/$STEAMPACKAGE.desktop" "$DESKTOP_DIR"
+! 		chmod +x "$DESKTOP_DIR/$STEAMPACKAGE.desktop"
+! 	fi
+  
+  	# Restore the umask
+  	umask "$omask"
+--- 107,119 ----
+  	# put the Steam icon on the user's desktop
+  	# try to read ~/.config/user-dirs.dirs to get the current desktop configuration
+  	# http://www.freedesktop.org/wiki/Software/xdg-user-dirs
+! #	test -f "${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs" && source "${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
+! #	DESKTOP_DIR="${XDG_DESKTOP_DIR:-$HOME/Desktop}"
+  
+! #	if [ -d "$DESKTOP_DIR" ]; then
+! #		cp "/usr/share/applications/$STEAMPACKAGE.desktop" "$DESKTOP_DIR"
+! #		chmod +x "$DESKTOP_DIR/$STEAMPACKAGE.desktop"
+! #	fi
+  
+  	# Restore the umask
+  	umask "$omask"
+***************
+*** 159,167 ****
+  	install_bootstrap "$DEFAULTSTEAMDIR"
+  elif ! check_bootstrap "$LAUNCHSTEAMDIR"; then
+  	# We have the data link but we can't find the data, prompt the user
+! 	if zenity --question --text=$"Couldn't find Steam content, did you move it?" --ok-label=$"Search" --cancel-label=$"Reinstall"; then
+  		while true; do
+! 			STEAMDIR="`zenity --file-selection --directory`"
+  			if [[ -z "$STEAMDIR" ]]; then
+  				# User canceled
+  				exit 0
+--- 160,168 ----
+  	install_bootstrap "$DEFAULTSTEAMDIR"
+  elif ! check_bootstrap "$LAUNCHSTEAMDIR"; then
+  	# We have the data link but we can't find the data, prompt the user
+! 	if kdialog --yesno=$"Couldn't find Steam content, did you move it?" --yes-label "Search" --no-label "Reinstall"; then
+  		while true; do
+! 			STEAMDIR="`kdialog --getexistingdirectory /`"
+  			if [[ -z "$STEAMDIR" ]]; then
+  				# User canceled
+  				exit 0

@@ -1,0 +1,24 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=plasma-theme-elgeneral
+_themename=elgeneral
+pkgver=1.2.2
+pkgrel=1
+pkgdesc="An elegant and minimalistic dark theme for KDE Plasma 1"
+arch=('any')
+license=('LGPL')
+url="http://kde-look.org/content/show.php/El+General+Plasma?content=174504"
+screenshot='http://kde-look.org/CONTENT/content-pre2/174504-2.png'
+depends=('plasma-workspace')
+source=("http://kde-look.org/CONTENT/content-files/174504-$_themename.tar.gz")
+sha256sums=('d4ccfbcc6ab2cca787d6ddc351a6fe1de959ab0aaa4d3ca1cc40ae72aac14626')
+
+
+
+package() {
+  cd $srcdir
+
+    install -d ${pkgdir}/usr/share/plasma/desktoptheme
+    cp -r ${srcdir}/${_themename} ${pkgdir}/usr/share/plasma/desktoptheme/
+    find ${pkgdir}/usr -type d -exec chmod 755 {} \;
+}

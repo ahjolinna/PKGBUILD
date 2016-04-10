@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=RipMe
+GenericName=Download Manager
+Comment=Java based download manager, supports Imgur, Minus, Tumblr, Twitter, Flickr, ImageBam, ImageFap, ImagEarn, Instagram, Xhamster, GetGoneWild, AnonIB, Motherless, 4chan, DeviantArt, etc..
+Exec=java -jar /opt/RipMe/ripme.jar
+StartupNotify=true
+Icon=ripme
+Type=Application
+Categories=Network; 

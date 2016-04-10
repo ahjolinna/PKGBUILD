@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Discord
+Comment=Discord App
+Exec=discord
+Icon=discord
+StartupNotify=false
+Categories=Network;Chat;InstantMessaging
+Type=Application

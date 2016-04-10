@@ -1,0 +1,14 @@
+post_install() {
+	update-desktop-database -q
+	#echo "This wine package is wow64 enabled. This means it can run 32bit/64bit Windows apps on x86_64."
+	#echo "If you are on x86_64, the default WINEARCH will be win64."
+	#echo "This will cause a lot of Windows applications to malfunction even if they usually work in wine."
+	#echo "Please create your ~/.wine with 'WINEARCH=win32 winecfg' if you are unsure and on x86_64."
+	#echo "See the Arch wiki on wine for more information."
+	echo "Warning! CSMT is unavailable from now on (version 1.9.6), since recent changes in Wine's main branch prevent it from working."
+	echo "If you want to use CSMT, you'll need to roll back to version 1.9.5."
+}
+
+post_remove() {
+	update-desktop-database -q
+}

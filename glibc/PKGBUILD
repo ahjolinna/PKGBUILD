@@ -1,0 +1,146 @@
+# maintainer: Manuel Tortosa <manutortosa[at]chakra-project[dot]org>
+
+
+pkgname=glibc
+pkgver=2.22
+pkgrel=6
+pkgdesc="GNU C Library"
+arch=('x86_64')
+url="http://www.gnu.org/software/libc"
+license=('GPL' 'LGPL')
+groups=('base')
+depends=('linux-api-headers>=3.4' 'tzdata' 'filesystem>=2014.07')
+makedepends=('gcc>=5.2')
+backup=(etc/gai.conf
+        etc/locale.gen
+        etc/nscd.conf)
+options=('!strip' 'staticlibs')
+install=glibc.install
+source=(http://ftp.gnu.org/gnu/libc/${pkgname}-${pkgver}.tar.xz
+        dtv_surplus.patch
+        locale.gen.txt
+        locale-gen)
+md5sums=('e51e02bf552a0a1fbbdc948fb2f5e83c'
+         '6469cba12e2252e16e32db0353ed3f21'
+         '07ac979b6ab5eeb778d55f041529d623'
+         '476e9113489f93b348b21e144b6a8fcf')
+validpgpkeys=('F37CDAB708E65EA183FD1AF625EF0A436C2A4AFF')  # Carlos O'Donell
+
+prepare() {
+  cd ${srcdir}/${pkgname}-${pkgver}
+
+  # http://chakraos.org/bugtracker/index.php?do=details&task_id=1060&project=8
+  patch -p1 -i $srcdir/dtv_surplus.patch
+
+  mkdir ${srcdir}/glibc-build
+}
+
+build() {
+  cd ${srcdir}/glibc-build
+
+  echo "slibdir=/usr/lib" >> configparms
+  echo "rtlddir=/usr/lib" >> configparms
+  echo "sbindir=/usr/sbin" >> configparms
+  echo "rootsbindir=/usr/sbin" >> configparms
+
+  # remove hardening options for building libraries
+  CFLAGS=${CFLAGS/-fstack-protector-strong/}
+  CPPFLAGS=${CPPFLAGS/-D_FORTIFY_SOURCE=2/}
+
+  ${srcdir}/${pkgname}-${pkgver}/configure --prefix=/usr \
+      --libdir=/usr/lib --libexecdir=/usr/lib \
+      --with-headers=/usr/include \
+      --with-bugurl=https://chakraos.org/bugtracker \
+      --enable-add-ons \
+      --enable-obsolete-rpc \
+      --enable-kernel=2.6.32 \
+      --enable-bind-now --disable-profile \
+      --enable-stackguard-randomization \
+      --enable-multi-arch \
+      --disable-werror
+#     --enable-lock-elision \
+
+  # build libraries with hardening disabled
+  echo "build-programs=no" >> configparms
+  make
+
+  # re-enable hardening for programs
+  sed -i "/build-programs=/s#no#yes#" configparms
+  echo "CC += -fstack-protector-strong -D_FORTIFY_SOURCE=2" >> configparms
+  echo "CXX += -fstack-protector-strong -D_FORTIFY_SOURCE=2" >> configparms
+  make
+
+  # remove harding in preparation to run test-suite
+  sed -i '5,7d' configparms
+}
+
+check() {
+  cd ${srcdir}/glibc-build
+
+  make check  &> ${srcdir}/checked || true
+}
+
+package() {
+  cd ${srcdir}/glibc-build
+
+  install -dm755 ${pkgdir}/etc
+  touch ${pkgdir}/etc/ld.so.conf
+
+  make install_root=${pkgdir} install
+
+  rm -f ${pkgdir}/etc/ld.so.{cache,conf}
+
+  install -dm755 ${pkgdir}/usr/lib/{locale,systemd/system,tmpfiles.d}
+
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.conf ${pkgdir}/etc/nscd.conf
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.service ${pkgdir}/usr/lib/systemd/system
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.tmpfiles ${pkgdir}/usr/lib/tmpfiles.d/nscd.conf
+
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/posix/gai.conf ${pkgdir}/etc/gai.conf
+
+  install -m755 ${srcdir}/locale-gen ${pkgdir}/usr/bin
+
+  # temporary symlink
+  ln -s ../sbin/ldconfig ${pkgdir}/usr/bin/ldconfig
+
+  # create /etc/locale.gen
+  install -m644 ${srcdir}/locale.gen.txt ${pkgdir}/etc/locale.gen
+  sed -e '1,3d' -e 's|/| |g' -e 's|\\| |g' -e 's|^|#|g' \
+    ${srcdir}/glibc-${pkgver}/localedata/SUPPORTED >> ${pkgdir}/etc/locale.gen
+
+  # remove the static libraries that have a shared counterpart
+  # libc, libdl, libm and libpthread are required for toolchain testsuites
+  # in addition libcrypt appears widely required
+  rm $pkgdir/usr/lib/lib{anl,BrokenLocale,nsl,resolv,rt,util}.a
+
+  # Do not strip the following files for improved debugging support
+  # ("improved" as in not breaking gdb and valgrind...):
+  #   ld-${pkgver}.so
+  #   libc-${pkgver}.so
+  #   libpthread-${pkgver}.so
+  #   libthread_db-1.0.so
+
+  cd $pkgdir
+  strip $STRIP_BINARIES usr/bin/{gencat,getconf,getent,iconv,makedb,locale,localedef} \
+                        usr/sbin/{iconvconfig,nscd} \
+                        usr/sbin/{ldconfig,sln} \
+                        usr/bin/{pcprofiledump,pldd,rpcgen,sprof} \
+                        usr/lib/getconf/*
+
+  strip $STRIP_STATIC usr/lib/*.a
+
+  strip $STRIP_SHARED usr/lib/{libanl,libBrokenLocale,libcidn,libcrypt}-*.so \
+                      usr/lib/libnss_{compat,db,dns,files,hesiod,nis,nisplus}-*.so \
+                      usr/lib/{libdl,libm,libnsl,libresolv,librt,libutil}-*.so \
+                      usr/lib/{libmemusage,libpcprofile,libSegFault}.so \
+                      usr/lib/{audit,gconv}/*.so \
+                      usr/lib/libmvec-*.so || true
+
+  #
+  # add lib symlinks
+  #
+  ln -s usr/lib ${pkgdir}/lib
+  ln -s usr/lib ${pkgdir}/lib64
+  ln -s lib ${pkgdir}/usr/lib64               
+
+}

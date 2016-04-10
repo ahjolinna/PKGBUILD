@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Xperia Theme Creator
+GenericName=Theme Editior
+Comment=With this Theme Creator tool from Sony you can design professional-looking themes for Xperia smartphones and tablets.
+Exec=java -jar /opt/xperia-theme-creator/xperia-theme-creator-beta.jar
+StartupNotify=true
+Icon=xperia-theme-creator
+Type=Application
+Categories=Graphics; 

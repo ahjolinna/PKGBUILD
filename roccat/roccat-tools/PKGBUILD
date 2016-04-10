@@ -1,0 +1,45 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=('roccat-tools')
+pkgver=3.4.0
+pkgrel=1
+pkgdesc='Userland applications to configure and make extended use of ROCCAT devices, with KDE support'
+arch=('x86_64')
+url='http://roccat.sourceforge.net'
+screenshot='http://i.imgur.com/xHTKSZc.png'
+license=('GPL2')
+depends=('libgaminggear>=0.11.1' 'libcanberra' 'gtk2' 'libnotify>=0.7.0' 'dbus-glib' 'systemd' 'hicolor-icon-theme')
+makedepends=('cmake')
+optdepends=('kmod-roccat: Adds support for the old kone device.'
+            'roccat-dkms: Adds support for the old kone device with dynamic rebuild.')
+conflicts=('roccat-tools-common' 'libgaminggear')
+replaces=('roccat-tools-common' 'libgaminggear')
+source=("http://downloads.sourceforge.net/project/roccat/roccat-tools/roccat-tools-$pkgver.tar.bz2")
+install=roccat-tools.install
+adding breeze theme
+sha256sums=('4f0e91b3cfc5be6b2c71d8a1dc77bce27c8ef180166d85f01b8383fbe05d9cb3')
+
+  if [ -f /usr/bin/breeze-settings5 ]; then
+    echo "adding breeze theme" 
+makedepends=('breeze-gtk')
+optdepends=('breeze-gtk: breeze theme for gtk apps')
+    fi
+    
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+
+ cmake \
+	-DCMAKE_INSTALL_PREFIX=/usr \
+	-DUDEVDIR=/usr/lib/udev/rules.d \
+	-DWITHOUT_PYTHON=TRUE \
+	-DLIBDIR="/usr/lib"
+  make
+}
+
+package() {
+  
+  cd "$srcdir/$pkgname-$pkgver"
+  
+  make DESTDIR="$pkgdir/" install
+}
+

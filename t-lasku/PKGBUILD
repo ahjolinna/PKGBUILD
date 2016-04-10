@@ -1,0 +1,25 @@
+# Maintainer: ahjolinna <ahjolinna@ovi.com>
+
+pkgname=t-lasku
+pkgver=1.22.0
+pkgrel=1
+pkgdesc="A Finnish invoicing software"
+arch=x86_64
+url="http://helineva.net/t-lasku/"
+screenshot='https://i.imgur.com/NTxRgR6.png'
+license=('BSD')
+depends=('qt5-base' 'qt5-script' 'postgresql-libs')
+install='t-lasku.install'
+source=(http://helineva.net/t-lasku/t-lasku-1.22.0-amd64.tar.gz)
+sha1sums=('32e6b2d287ec614b6bd961a668a7c41d6f15d904')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  gcc -lQt5Script -lQt5Sql -lQt5Xml -lQt5Gui -lQt5Widgets -lQt5PrintSupport -lQt5Core -lpthread -lstdc++     -o t-lasku t-lasku-relocatable
+  gcc -lQt5Script -lQt5Sql -lQt5Xml -lQt5Gui -lQt5Widgets -lQt5PrintSupport -lQt5Core -lpthread -lstdc++     -o t-lasku-cli t-lasku-cli-relocatable
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  make DESTDIR="$pkgdir/" install
+}

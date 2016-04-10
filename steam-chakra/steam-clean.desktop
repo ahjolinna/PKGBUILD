@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Steam (Purge Libraries)
+Comment=OpenGL errors related to runtime library incompatibilities may be fixed
+Exec=/usr/bin/steam-clean
+Icon=steam
+Terminal=false
+Type=Application
+Categories=Game;

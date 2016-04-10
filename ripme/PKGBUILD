@@ -1,0 +1,30 @@
+# maintainer : ahjolinna <ahjolinna@ovi.com>
+
+pkgname=ripme
+pkgver=latest
+pkgrel=3
+pkgdesc='Download manager, written in Java. Supports Imgur, Minus, Tumblr, Twitter, Flickr, ImageBam, ImageFap, ImagEarn, Instagram, 4chan, DeviantArt, etc.'
+arch=('any')
+url='http://rip.rarchives.com/'
+screenshot='https://camo.githubusercontent.com/3b4becfd7701dbae3a1e136cfba08722c1744fd0/687474703a2f2f692e696d6775722e636f6d2f6b577a687349752e706e67'
+license=('MIT')
+depends=('java-runtime' 'wget' 'bash' 'junit' 'jsoup' 'httpcomponents-core' 'log4j')
+categories=('network')
+install='ripme.install'
+conflicts=('rarchives')
+source=(http://rarchives.com/${pkgname}.jar
+	'ripme.png'
+	'ripme.install'
+        'ripme.desktop')
+md5sums=('SKIP'
+         '6740bc8a194a81703f08c13532127a81'
+         '0af000fdc5d249f9db29d2ff8e5410bd'
+        'a571c797992540e434654c3e6a50f1e8')
+
+package() {
+  install -Dm755 "${srcdir}/ripme.jar" "${pkgdir}/opt/RipMe/ripme.jar"
+  install -Dm644 "${srcdir}/ripme.png" "${pkgdir}/usr/share/pixmaps/ripme.png"
+  install -Dm644 "${srcdir}/ripme.desktop" "${pkgdir}/usr/share/applications/ripme.desktop"
+}
+
+# vim:set ts=2 sw=2 et:

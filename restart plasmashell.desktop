@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Name=plasmashell resart
+Icon=plasma
+#Exec=kbuildsycoca5 && kquitapp5 plasmashell && kquitapp5 kwin && kstart5 plasmashell && DISPLAY=:0 kwin_x11 --replace
+Exec=kbuildsycoca5 && DISPLAY=:0 kwin_x11 --replace && pkill -f plasmashell && kstart plasmashell --shut-up
+Terminal=false
+StartupNotify=false
+Categories=Utility;

@@ -1,0 +1,62 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=ktorrent-frameworks-git
+pkgbase=ktorrent
+pkgver=5.0.0.r2239.0162194
+pkgrel=1
+pkgdesc="A BitTorrent program for KDE"
+arch=('x86_64')
+url="http://ktorrent.pwsp.net/"
+license=('GPL2')
+depends=('kdelibs4support' 'ki18n' 'kio' 'kxmlgui' 'knotifications' 'knotifyconfig' 'solid'
+         'kconfig' 'kcoreaddons' 'kross' 'kcmutils' 'sonnet' 'kdbusaddons' 'kcrash' 
+         'libktorrent-frameworks-git' 'plasma-workspace')
+makedepends=('extra-cmake-modules' 'boost' 'kdnssd' 'kross' 'taglib' 'geoip' 'kdoctools' 'plasma-workspace' 'git')
+optdepends=('taglib: for mediaplayer plugin'
+            'geoip: for infowidget plugin'
+            'plasma-workspace: for shutdown plugin'
+            'kdnssd: for zeroconf plugin'
+provides=('ktorrent')
+conflicts=('ktorrent')
+replaces=('ktorrent')
+source=('git://anongit.kde.org/ktorrent.git#branch=master')
+install=ktorrent-frameworks-git.install
+groups=('network')
+options=('libtool')
+md5sums=('SKIP')
+
+pkgver() {
+  cd ktorrent
+  _ver="$(cat libktcore/ktversion.h | grep -m3 -e MAJOR -e MINOR -e RELEASE | cut -d '=' -f2 | grep -o "[[:digit:]]*" | paste -sd'.')"
+  echo "${_ver}.r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd ${pkgbase}
+   mkdir -p build
+  #sed -i 's|Exec=ktorrent %U|Exec=/usr/bin/ktorrent -qwindowtitle %c %u|g' ktorrent/org.kde.ktorrent.desktop
+  # sed -i 's|Exec=ktorrent %i -caption %c %u|Exec=/usr/bin/ktorrent -qwindowtitle %c %u|g' ktorrent/org.kde.ktorrent.desktop
+  #sed -i 's|ui.rc DESTINATION ${DATA_INSTALL_DIR}|ui.rc DESTINATION ${KXMLGUI_INSTALL_DIR}|g' plugins/*/CMakeLists.txt
+  #sed -i 's|TARGETS ktorrent_app ${INSTALL_TARGETS_DEFAULT_ARGS}|TARGETS ktorrent_app ${KDE_INSTALL_TARGETS_DEFAULT_ARGS}|g' ktorrent/CMakeLists.txt
+}
+
+
+build() {
+  mkdir build
+  cd build
+  
+  cmake ../${pkgbase} \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DKDE_INSTALL_LIBDIR=lib \
+    -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
+    -DBUILD_TESTING=OFF \
+    -DWITH_SYSTEM_GEOIP=ON
+  make
+}
+
+package() {
+  cd build
+  
+  make DESTDIR=${pkgdir} install
+}

@@ -1,0 +1,53 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+# Contributor: Eothred <yngve.levinsen@gmail.com>
+# Contributor: Ashley Whetter <(firstname) @ awhetter.co.uk>
+
+pkgname=spotify
+pkgver=1.0.26.125
+_anotherpkgver=.g64dc8bc6
+pkgrel=2
+pkgdesc="A proprietary music streaming service"
+arch=('x86_64')
+license=('custom:"Copyright (c) 2006-2013 Spotify Ltd"')
+url="http://www.spotify.com"
+screenshot="http://i.imgur.com/Kqf0BRj.png"
+options=('!strip' '!upx')
+conflicts=('spotify-beta' 'spotify-old-qt4')
+replaces=('spotify-beta' 'spotify-old-qt4')
+
+source=("http://repository.spotify.com/pool/non-free/s/spotify-client/spotify-client_${pkgver}${_anotherpkgver}-15_amd64.deb"
+'spotify'
+'spotify.protocol')
+sha256sums=('e15b159dd2f20f8c00067545d5899f40f991fa89e1cf246b280289944396c407'
+            'c4579858d2dd8214cdd1331e3dff8a8b06b7cdd4178efd1354d0719af8a708e1'
+            'af54f3b90cac46fa100b3f919a9225d10d847617d24aa9af3d832e7689f482c3')
+
+
+depends=("alsa-lib>=1.0.14" "gconf" "gtk2" "glib2" "nss" "systemd" "libxtst" "libx11" "libxss" "libcurl-compat" "desktop-file-utils" "rtmpdump")
+optdepends=('ffmpeg0.10: Adds support for playback of local files'
+            'zenity: Adds support for importing local files'
+						)
+install=spotify.install
+
+package() {
+  cd "${srcdir}"
+
+	tar -xzf data.tar.gz -C "${pkgdir}"
+
+	install -d "${pkgdir}"/usr/share/applications
+	install -d "${pkgdir}"/usr/share/pixmaps
+	install "${pkgdir}"/usr/share/spotify/spotify.desktop "${pkgdir}"/usr/share/applications/spotify.desktop
+	install "${pkgdir}"/usr/share/spotify/icons/spotify-linux-512.png "${pkgdir}"/usr/share/pixmaps/spotify-client.png
+
+	chmod -R go-w "${pkgdir}"/usr
+
+	# Bin Script
+	rm "${pkgdir}"/usr/bin/spotify
+	install -Dm755 "${srcdir}/spotify" "${pkgdir}/usr/bin/spotify"
+
+  # Copy protocol file if KDE is installed
+  if [ -f /usr/bin/startkde ]; then
+    echo "Installing with KDE support"
+    install -Dm644 "${srcdir}/spotify.protocol" "${pkgdir}/usr/share/kde4/services/spotify.protocol"
+  fi
+}

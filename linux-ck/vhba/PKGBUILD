@@ -1,0 +1,42 @@
+#
+# Chakra Packages for Chakra, part of chakraos.org
+#
+
+_extramodules=extramodules-4.4-ck
+_kver="$(cat /usr/lib/modules/${_extramodules}/version)"
+_kernelver=4.4.6
+
+_pkgname=vhba-module
+pkgname=vhba-module-ck
+pkgver=20140928
+pkgrel=4
+pkgdesc="Kernel module that emulates SCSI devices"
+arch=('x86_64')
+url="http://cdemu.sourceforge.net/"
+license=('GPL2')
+depends=("linux-ck>=${_kernelver}")
+makedepends=("linux-ck-headers>=${_kernelver}")
+install=vhba-module-ck.install
+source=("http://sourceforge.net/projects/cdemu/files/vhba-module/vhba-module-$pkgver.tar.bz2"
+        '60-vhba-ck.rules')
+md5sums=('967007230bb028424216d9b35da422c0'
+         '4dc37dc348b5a2c83585829bde790dcc')
+
+prepare() {
+  cd $_pkgname-$pkgver
+}
+
+build() {
+  cd "$_pkgname-$pkgver"
+
+  make KDIR=/usr/lib/modules/$_kver/build
+}
+
+package() {
+  cd $_pkgname-$pkgver
+  install -Dm644 vhba.ko "$pkgdir/usr/lib/modules/${_extramodules}/vhba.ko"
+  install -Dm644 ../60-vhba-ck.rules "$pkgdir/usr/lib/udev/rules.d/60-vhba-ck.rules"
+
+sed -i -e "s/EXTRAMODULES='.*'/EXTRAMODULES='${_extramodules}'/" \
+          "${startdir}/vhba-module-ck.install"
+}

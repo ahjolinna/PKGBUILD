@@ -1,0 +1,9 @@
+#!/bin/bash
+
+zenity --question --title="Purge libraries" --text="Do you have an <b>OpenGL/render error</b> <i>preventing</i> Steam from starting?" --icon-name=steam 2>/dev/null
+if [ $? -eq 0 ] ; then
+find ~/.steam/root/ \( -name "libgcc_s.so*" -o -name "libstdc++.so*" -o -name "libxcb.so*" \) -print -delete
+zenity --info --title="Purge libraries" --text="Potentially incompatible Steam libraries have been purged." --icon-name=steam 2>/dev/null
+else
+zenity --info --title="Purge libraries" --text="This likely isn't the solution. Check site/forums." --icon-name=steam 2>/dev/null
+fi

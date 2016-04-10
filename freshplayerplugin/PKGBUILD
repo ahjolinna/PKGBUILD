@@ -1,0 +1,37 @@
+pkgname=freshplayerplugin
+pkgver=0.3.3
+pkgrel=1
+pkgdesc='PPAPI-host NPAPI-plugin adapter.'
+arch=('x86_64')
+url='https://github.com/i-rinat/freshplayerplugin'
+license=('MIT')
+depends=('pepperflashplugin' 'pango' 'alsa-lib' 'freetype2' 'cairo' 'glib2' 'libpulse' 
+         'libx11' 'libevent' 'gtk2' 'libgl' 'openssl' 'ffmpeg' 'libxrandr'
+         'libxrender' 'libxcursor' 'v4l-utils' 'libva' 'jack2')
+makedepends=('cmake' 'ragel')
+conflicts=('freshplayerplugin-git' 'flashplugin' 'chromium-pepper-flash')
+source=("$url/archive/v$pkgver.tar.gz"
+        'freshwrapper.conf')
+backup=('etc/freshwrapper.conf')
+md5sums=('c9960fd1e419d3d495fe6a9186286718'
+         'eb82d0a79c15d45cdf8f59e993cd99a5')
+
+build() {
+  cd $pkgname-$pkgver
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+  make
+}
+
+package() {
+  cd $pkgname-$pkgver
+  install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+
+  for lib in libfreshwrapper-*.so; do
+    install -Dm755 $lib "$pkgdir"/usr/lib/mozilla/plugins/$lib
+  done
+  
+  #Install config files.
+  install -Dm644 $srcdir/freshwrapper.conf "$pkgdir/etc/freshwrapper.conf"
+  install -Dm644 $srcdir/$pkgname-$pkgver/data/freshwrapper.conf.example \
+                 "$pkgdir/etc/freshwrapper.conf.example"
+}

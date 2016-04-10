@@ -1,0 +1,69 @@
+pkgname=btsync-gui
+gitname=btsync-deb
+pkgver=0.9.1
+_pkgupd=1
+pkgrel=1
+pkgdesc="Unofficial Bittorrent Sync GUI for Linux desktops."
+arch=('any')
+url="http://www.yeasoft.com/site/projects:btsync-deb:btsync-gui"
+license=('GPL2')
+depends=('hicolor-icon-theme' 'python2-dbus' 'python2-gobject' 'python2-requests' 'python2-qrencode' 'pygtk')
+optdepends=('btsync: btsync 2.0'
+            'btsync-1.4: bysync 1.4 (beta)')
+makedepends=('gettext')
+conflicts=('btsyncindicator' 'btsync-autoconfig')
+source=("git://github.com/Silvenga/btsync-deb.git" # "${pkgname}-${pkgver}-${_pkgupd}.tar.gz"
+        "${pkgname}.key")
+sha1sums=('SKIP'
+          '2a0f2cc3004e248b3f3548f325e1b03cb384bc20')
+install="${pkgname}.install"
+
+prepare() {
+    cd "${srcdir}/${gitname}/${pkgname}"
+    # Arch Linux compatibility patches
+    sed -i 's|env python|env python2|' ${pkgname}
+    sed -i "s|lf_dir='btsync-common',|lf_dir='bin',|" btsyncagent.py
+    sed -i "s|						lf_name='btsync-core',|						lf_name='btsync',|" btsyncagent.py
+    sed -i "s/\t\t\tcfg\.write('\\\t\"i_agree\" : \"yes\",\\\n')//" btsyncagent.py
+}
+
+package() {
+    cd "${srcdir}/${gitname}/${pkgname}"
+    install -d -m 0755 "${pkgdir}/usr/bin"
+    install -m 0755 ${pkgname} "${pkgdir}/usr/bin/"
+
+    install -d -m 0755 "${pkgdir}/usr/lib/${pkgname}"
+    install -m 0755 *.py "${pkgdir}/usr/lib/${pkgname}"
+    install -m 0644 *.glade "${pkgdir}/usr/lib/${pkgname}"
+    install -m 0644 "${srcdir}/${pkgname}.key" "${pkgdir}/usr/lib/${pkgname}"
+
+    install -d -m 0755 "${pkgdir}/usr/share/applications"
+    install -m 0644 ${pkgname}.desktop "${pkgdir}/usr/share/applications/"
+
+    install -d -m 0755 "${pkgdir}/usr/share/man/man7"
+    install -m 0644 ${pkgname}.7 "${pkgdir}/usr/share/man/man7/"
+
+    install -d -m 0755 "${pkgdir}/usr/share/doc/${pkgname}"
+    install -m 0644 *.md "${pkgdir}/usr/share/doc/${pkgname}"
+
+    cd "${srcdir}/${gitname}/${pkgname}/icons"
+    for ICON in *
+    do
+        if [ -d ${ICON}/apps ]; then
+            install -d -m 0755 "${pkgdir}/usr/share/icons/hicolor/${ICON}/apps"
+            install -m 0644 ${ICON}/apps/* "${pkgdir}/usr/share/icons/hicolor/${ICON}/apps/"
+        fi
+        if [ -d ${ICON}/status ]; then
+            install -d -m 0755 "${pkgdir}/usr/share/icons/hicolor/${ICON}/status"
+            install -m 0644 ${ICON}/status/* "${pkgdir}/usr/share/icons/hicolor/${ICON}/status/"
+        fi
+    done
+
+    cd "${srcdir}/${gitname}/${pkgname}/po"
+    for PO in *.po
+    do
+        LANG_CODE=`basename ${PO} .po`
+        install -d -m 0755 "${pkgdir}/usr/share/locale/${LANG_CODE}/LC_MESSAGES"
+        msgfmt -c ${PO} -o "${pkgdir}/usr/share/locale/${LANG_CODE}/LC_MESSAGES/btsync-gui.mo" 2>/dev/null
+    done
+}

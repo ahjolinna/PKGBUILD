@@ -1,0 +1,20 @@
+# Maintainer: ahjolinna (ahjolinna@yahoo.com)
+
+pkgname='shashlik'
+pkgver='0.9.1'
+pkgrel='1'
+pkgdesc='Android Applications on Real Linux'
+arch=('x86_64')
+url='http://www.shashlik.io/'
+screenshot='http://www.shashlik.io/wp-content/uploads/Android-Best-Apps.png'
+license=('unknown')
+depends=('python3' 'lib32-libgl' 'lib32-glibc' 'lib32-gcc-libs' 'lib32-zlib' 'python3-xdg' 'kde-baseapps-kdialog')
+#makedepends=('deb2targz')
+source=("http://static.davidedmundson.co.uk/shashlik/shashlik_$pkgver.deb")
+sha256sums=('888c535a9ff2e8563712cbe0fa3a208ccb21f9f90d66a434fb4c40fce6404520')
+
+package() {
+  cd "${srcdir}"
+  
+  tar -xJvC "${pkgdir}" -f data.tar.xz
+}

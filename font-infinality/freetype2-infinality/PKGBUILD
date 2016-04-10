@@ -1,0 +1,104 @@
+# Maintainer: ahjolinna <ahjolinna>
+
+
+_lib32=1
+
+pkgname=freetype2-infinality
+_pkgbasename=freetype2
+pkgver=2.6.2
+pkgrel=2
+pkgdesc="TrueType font rendering library with infinality patch"
+arch=(x86_64)
+license=('GPL')
+url="https://github.com/bohoomil/fontconfig-ultimate"
+depends=('zlib' 'bzip2' 'sh')
+conflicts=('freetype2')
+provides=("freetype2=$pkgver")
+options=('!libtool')
+install='install.sh'
+backup=('etc/profile.d/infinality-settings.sh')
+
+source=("http://downloads.sourceforge.net/sourceforge/freetype/freetype-${pkgver}.tar.bz2"
+	"infinality-settings.sh"
+	"01-freetype-2.6.2-enable-valid.patch"
+	"02-upstream-2015.12.05.patch"
+	"03-infinality-2.6.2-2015.12.05.patch")
+
+sha256sums=('baf6bdef7cdcc12ac270583f76ef245efe936267dbecef835f02a3409fcbb892'
+            'f9b3e8154500779c943365cda45d34fa279b8f140ff37de760fb8349d24e08ae'
+            '086c9874ba5217dab419ac03dbc5ad6480aaa67b3c9d802f7181d8a3e007f8eb'
+            '44369c6d03a951a54b8cf113741704f0cfcb0ea140558b5643f6ce326cca011d'
+            'c80b855f67d5b6407d13faffbb4f59f70412c7308a7e3d2a7ef4561f61729271')
+
+
+if [[ $_lib32 = 1 ]] || pacman -Q lib32-freetype2-infinality &>/dev/null; then
+  pkgname+=('lib32-freetype2-infinality')
+fi
+build() {
+	cd "${srcdir}/freetype-${pkgver}"
+	
+	patch -Np1 -i ../01-freetype-2.6.2-enable-valid.patch
+	patch -Np1 -i ../02-upstream-2015.12.05.patch
+	patch -Np1 -i ../03-infinality-2.6.2-2015.12.05.patch
+
+
+	./configure --prefix=/usr \
+                    --localstatedir=/var \
+                    --sysconfdir=/etc \
+                    --disable-static \
+                    --with-harfbuzz \
+                    --with-png
+
+	make
+}
+
+package_freetype2-infinality() {
+pkgdesc="TrueType font rendering library with infinality patch"
+depends=('zlib' 'bzip2' 'sh')
+optdepends=('fontconfig-infinality: Infinality package for fontconfig (required)')
+provides=('freetype2')
+conflicts=('freetype2' 'freetype2-infinality-ultimate')
+	cd "${srcdir}/freetype-${pkgver}"
+	make DESTDIR="${pkgdir}" install
+	install -D -T "${srcdir}/infinality-settings.sh" "${pkgdir}/etc/profile.d/infinality-settings.sh"
+	 
+	 # freetype2 runtime settings
+  install -m755 -d "${pkgdir}/etc/X11/xinit/xinitrc.d"
+  install -m755 "${srcdir}/infinality-settings.sh" \
+    "${pkgdir}/etc/X11/xinit/xinitrc.d/infinality-settings.sh"
+
+  sed -i "1i #!/bin/bash\n" \
+    "${pkgdir}/etc/X11/xinit/xinitrc.d/infinality-settings.sh"
+}
+
+package_lib32-freetype2-infinality() {
+pkgdesc="TrueType font rendering library (32-bit) with infinality patch"
+depends=('lib32-zlib' 'lib32-bzip2' 'freetype2-infinality')
+makedepends=('gcc-multilib')
+conflicts=('lib32-freetype2' 'lib32-freetype2-infinality-ultimate')
+provides=('lib32-freetype2')
+{
+  cd "${srcdir}/freetype-${pkgver}"
+ 
+ export CC="gcc -m32"
+  export CXX="g++ -m32"
+  export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+
+  cd "${srcdir}/freetype-${pkgver}"
+  ./configure --prefix=/usr --libdir=/usr/lib32
+  make
+}
+
+ {
+  cd "${srcdir}/freetype-${pkgver}"
+  make -k check
+}
+ {
+  cd "${srcdir}/freetype-${pkgver}"
+  make DESTDIR="${pkgdir}" install
+  rm -r "${pkgdir}"/usr/{include,share,bin}
+} 
+}
+
+# Global pkgdesc and depends are here so that they will be picked up by CCR
+pkgdesc="TrueType font rendering library with infinality patch, lib32 version included" 

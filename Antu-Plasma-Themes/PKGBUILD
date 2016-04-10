@@ -1,0 +1,24 @@
+_pkgname=Antu
+pkgname=plasma-theme-antu
+pkgver=1.3
+pkgrel=1
+pkgdesc="Antü the ever changing theme for Linux ...Kappa"
+#pkgdesc="An elegant and minimalistic dark theme for KDE Plasma5"
+arch=('any')
+license=('LGPL')
+url="https://github.com/fabianalexisinostroza/${_pkgname}"
+screenshot='https://cloud.githubusercontent.com/assets/14989730/13197155/fb8ef2a0-d7c3-11e5-9ab8-cdf793c4c877.png'
+depends=('plasma-workspace')
+conflicts=('plasma-theme-elgeneral')
+source=("${_pkgname}.tar.gz::${url}/archive/antu-$pkgver.tar.gz")
+
+sha256sums=('e0cc02276181361d460ef5aef5c6be6c3225a3a8abaa6713f65f87ee9970142e')
+
+package() {
+  cd $srcdir
+   install -d ${pkgdir}/usr/share/plasma/desktoptheme
+    cp -r "${srcdir}/${_pkgname}-antu-$pkgver/${_pkgname} Plasma Theme/Antü" ${pkgdir}/usr/share/plasma/desktoptheme/${pkgname}
+    find ${pkgdir}/usr -type d -exec chmod 755 {} \;
+}
+
+

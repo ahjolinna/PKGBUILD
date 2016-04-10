@@ -1,0 +1,58 @@
+# Maintainer: ahjolinna <@yahoo.com>
+# Contributor (aur): Rock Neurotiko <miguelglafuente@gmail.com>
+# Contributor (aur): Sergio Conde <skgsergio@gmail.com>
+
+pkgname=discord
+pkgver=0.1.5
+pkgrel=4
+pkgdesc="A voice chat program similar to Mumble and Teamspeak except you don't need to host or rent/buy a server."
+arch=('x86_64')
+url='https://github.com/XNBlank/discord-linux'
+#screenshot='http://i.imgur.com/LYUt9lC.png'
+screenshot='http://i.imgur.com/WKEXxmb.png'
+provides=('discord')
+conflicts=('discord')
+license=('MIT')
+depends=('alsa-lib' 'libnotify' 'libxtst' 'nss' 'glibc' 'glib2' 'gtk2' 'atk' 'pango' 'cairo' 'gdk-pixbuf2' 'libdbus' 'systemd' 'nettle')
+makedepends=('gtk2' 'gconf')
+optdepends=('freetype2-infinality: If you have black screens with emojis install this.'
+            'obs-studio: for twitch.tv game streaming or a like.')
+
+
+source=("https://github.com/XNBlank/discord-linux/archive/x64-${pkgver}.tar.gz"
+        'Discord.desktop')
+sha256sums=('623cbabb05963f0bbd002a919ce5a5c85c134684d4f36037d13bd247b2233010'
+            '0826f0a07a567d3d966563151329e3e155bf47da528f0698bd677cb46cc468de')
+
+
+package() {
+  case $CARCH in
+    'x86_64') _arch='x64';;
+  esac
+
+  # Install files
+  install -d "${pkgdir}/opt/discord"
+  cp -a "${srcdir}/${pkgname}-linux-${_arch}-${pkgver}/." "${pkgdir}/opt/discord/"
+
+  # Make binary executable
+  chmod 755 "${pkgdir}/opt/discord/discord"
+
+  # Install desktop entry
+  install -d "${pkgdir}/usr/share/applications"
+  install "${srcdir}/Discord.desktop" "${pkgdir}/usr/share/applications"
+
+  # Create symbolic link to the main binary
+  install -d "${pkgdir}/usr/bin"
+  ln -s "/opt/discord/discord" "${pkgdir}/usr/bin/discord"
+
+  # Create symbolic link to the icon
+  install -d "${pkgdir}/usr/share/pixmaps"
+  ln -s "/opt/discord/resources/app/icon.png" "${pkgdir}/usr/share/pixmaps/discord.png"
+
+  # Install license file
+  install -Dm644 "${pkgdir}/opt/discord/LICENSE" "${pkgdir}/usr/share/licenses/discord/LICENSE"
+  rm "${pkgdir}/opt/discord/LICENSE"
+
+  # Dirty hack... we should tell the developer to store settings in user home...
+  # chmod 666 "${pkgdir}/opt/discord/resources/app/init.json"
+}

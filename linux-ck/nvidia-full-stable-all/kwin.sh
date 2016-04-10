@@ -1,0 +1,2 @@
+#export __GL_YIELD="USLEEP" 
+export KWIN_TRIPLE_BUFFER=1

@@ -1,0 +1,32 @@
+# $Id$
+# Maintainer:  ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=('x264-newer')
+pkgbase=('x264')
+pkgver=20160201
+pkgrel=1
+pkgdesc="free library for encoding H264/AVC video streams"
+arch=('x86_64')
+url="http://www.videolan.org/developers/x264.html"
+screenshot='http://files.tested.com/uploads/0/1507/20616-h264logo.jpg'
+license=('GPL')
+depends=('glibc')
+makedepends=('yasm' 'git' 'ffmpeg' 'l-smash')
+provides=('x264')
+replaces=('x264')
+conflict=('x264')
+source=("ftp://ftp.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-$pkgver-2245-stable.tar.bz2")
+md5sums=('b13ee262d5ba9ffec69095f2698eec0a')
+
+build() {
+    cd "$srcdir/$pkgbase-snapshot-$pkgver-2245-stable"
+
+    ./configure --prefix=/usr --enable-shared --enable-pic  --bit-depth=10
+
+    make
+}
+package() {
+    cd "$srcdir/$pkgbase-snapshot-$pkgver-2245-stable"
+
+    make DESTDIR="$pkgdir" install
+}

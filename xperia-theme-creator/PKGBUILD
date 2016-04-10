@@ -1,0 +1,32 @@
+# maintainer : ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=xperia-theme-creator
+pkgver=1.0.0
+pkgrel=3
+_srcname=theme-creator-1_0_0-BETA
+pkgdesc=With this Theme Creator tool from Sony you can design professional-looking themes for Xperia smartphones and tablets.
+arch=('any')
+url='https://developer.sony.com/develop/smartphones-and-tablets/theme-creator/'
+screenshot='http://developer-static.se-mc.com/wp-content/blogs.dir/1/files/2015/09/ThemeCreator070Promo_660x384-660x384.jpg'
+license=('Apache 2.0')
+depends=('java-runtime' 'wget')
+categories=('graphics')
+install='xperia-theme-creator.install'
+
+source=(http://dl.developer.sony.com/mobile/tools/theme-creator-v1_0_0-BETA.zip
+	'xperia-theme-creator.png'
+	'xperia-theme-creator.install'
+        'xperia-theme-creator.desktop')
+
+md5sums=('b78776fe738ad79667d2a2efb2d01827'
+         'cc763637654dd69cf0463580e3c8c446'
+         '0af000fdc5d249f9db29d2ff8e5410bd'
+         '7a7477eb130f2b19aa42826b382e8923')
+
+package() {
+  install -Dm755 "${srcdir}/$_srcname.jar" "${pkgdir}/opt/$pkgname/xperia-theme-creator-beta.jar"
+  install -Dm644 "${srcdir}/$pkgname.png" "${pkgdir}/usr/share/pixmaps/$pkgname.png"
+  install -Dm644 "${srcdir}/$pkgname.desktop" "${pkgdir}/usr/share/applications/$pkgname.desktop"
+}
+
+# vim:set ts=2 sw=2 et:

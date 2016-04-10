@@ -1,0 +1,16 @@
+pkgbase = qmmp-qsmmp-git
+	pkgdesc = Amarok-like interface for qmmp. Git version
+	pkgver = r113.be68591
+	pkgrel = 1
+	url = https://github.com/ksv1986/qsmmp
+	arch = i686
+	arch = x86_64
+	license = GPL2
+	makedepends = git
+	depends = qmmp
+	depends = libqxt
+	source = qsmmp::git+https://github.com/ksv1986/qsmmp.git
+	md5sums = SKIP
+
+pkgname = qmmp-qsmmp-git
+

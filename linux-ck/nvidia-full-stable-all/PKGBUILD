@@ -1,0 +1,438 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+# Based on nvidia-beta-all: https://aur.archlinux.org/packages/nvidia-beta-all/,
+#          nvidia-utils-beta: https://aur.archlinux.org/packages/nvidia-utils-beta/ and
+#          lib32-nvidia-utils-beta: https://aur.archlinux.org/packages/lib32-nvidia-utils-beta/
+
+# Build the lib32 packages too? This only needs to be defined once and will
+# remain until the packages are removed. "1" to enable.
+_lib32=1
+
+
+pkgname=('nvidia-full-stable-all')
+true && pkgname=('nvidia-full-stable-all' 'nvidia-utils-full-stable-all' 'nvidia-libgl-full-stable-all' 'opencl-nvidia-full-stable-all')
+conflicts=('nvidia-full-beta-all' 'nvidia-utils-full-beta-all' 'nvidia-libgl-full-beta-all' 'opencl-nvidia-full-beta-all' 'lib32-nvidia-utils-full-beta-all' 'lib32-nvidia-libgl-full-beta-all' 'lib32-opencl-nvidia-full-beta-all')
+pkgver=358.16
+pkgrel=5
+arch=('x86_64')
+url="http://www.nvidia.com/"
+screenshot='http://international.download.nvidia.com/webassets/en_US/shared/images/logos/twimtbp.png'
+license=('custom:NVIDIA')
+makedepends=('linux-headers' 'pacman>=4.2.0')
+options=('!strip')
+
+# Installer name
+_pkg="NVIDIA-Linux-x86_64-$pkgver-no-compat32"
+
+[[ $_lib32 = 1 ]] || pacman -Q lib32-nvidia-utils-full-stable-all &>/dev/null;
+  pkgname+=('lib32-nvidia-utils-full-stable-all' 'lib32-nvidia-libgl-full-stable-all' 'lib32-opencl-nvidia-full-stable-all')
+  _pkg="NVIDIA-Linux-x86_64-$pkgver"
+
+
+# Source
+source=('20-nvidia.conf' 'nvidia-utils-full-stable-all.install' 'nvidia-full-stable-all.install' 'kwin.sh')
+source_x86_64=("http://us.download.nvidia.com/XFree86/Linux-x86_64/$pkgver/$_pkg.run")
+md5sums=('a3c1b8884f951904955ae7fc02346b26'
+         'db7b9625dfeee2981d000761391dbb66'
+         'a4f534094e040f6acd3f90998c21af1d'
+         '971f7a3b85cfc63c5f5ccf985fbce9e4')
+md5sums_x86_64=('b766c62e2168cb9e125e5ae3bada4383')
+
+# Auto-detect patches (e.g. nvidia-linux-4.1.patch)
+for _patch in $(ls "$startdir"/*.patch 2>/dev/null); do
+  source+=("$_patch")
+  md5sums+=('SKIP')
+done
+
+_create_links() {
+  # create missing soname links
+  for _lib in $(find "$pkgdir" -name '*.so*' | grep -v 'xorg/'); do
+    # Get soname/base name
+    _soname=$(dirname "$_lib")/$(readelf -d "$_lib" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
+    _base=$(echo "$_soname" | sed -r 's/(.*).so.*/\1.so/')
+
+    # Create missing links
+    [[ -e $_soname ]] || ln -s $(basename "$_lib") "$_soname"
+    [[ -e $_base ]] || ln -s $(basename "$_soname") "$_base"
+  done
+}
+
+prepare() {
+  # Remove previous builds
+  if [[ -d $_pkg ]]; then
+    rm -rf $_pkg
+  fi
+
+  # Extract
+  msg2 "Self-Extracting $_pkg.run..."
+  sh $_pkg.run -x
+  cd $_pkg
+  bsdtar -xf nvidia-persistenced-init.tar.bz2
+
+  # Loop for all kernels
+  for _kernel in $(cat /usr/lib/modules/extramodules-*/version); do
+    # Use separate source directories
+    cp -r kernel kernel-$_kernel
+
+    # Patch?
+    for _patch in $(ls "$srcdir"/*.patch 2>/dev/null); do
+      # Patch version
+      _major_patch=$(echo $_patch | grep -Po "\d+\.\d+")
+
+      # Cd in place
+      cd kernel-$_kernel
+
+      # Check version
+      if (( $(vercmp $_kernel $_major_patch) >= 0 )); then
+        msg2 "Applying $_patch for $_kernel..."
+        patch -p2 -i "$_patch"
+      fi
+
+      # Return
+      cd ..
+    done
+  done
+}
+
+build() {
+  # Build for all kernels
+  for _kernel in $(cat /usr/lib/modules/extramodules-*/version); do
+    cd "$srcdir"/$_pkg/kernel-$_kernel
+
+    # Build module
+    msg2 "Building Nvidia module for $_kernel..."
+    make SYSSRC=/usr/lib/modules/$_kernel/build module
+  done
+}
+
+package_opencl-nvidia-full-stable-all() {
+  pkgdesc="NVIDIA's OpenCL implemention for 'nvidia-utils-full-stable-all'"
+  depends=('libcl' 'zlib')
+  optdepends=('opencl-headers: headers necessary for OpenCL development')
+  provides=('opencl-nvidia')
+  conflicts=('opencl-nvidia')
+  cd $_pkg
+
+  # OpenCL
+  install -D -m644 nvidia.icd "$pkgdir"/etc/OpenCL/vendors/nvidia.icd
+  install -D -m755 libnvidia-compiler.so.$pkgver "$pkgdir"/usr/lib/libnvidia-compiler.so.$pkgver
+  install -D -m755 libnvidia-opencl.so.$pkgver "$pkgdir"/usr/lib/libnvidia-opencl.so.$pkgver
+
+  # create missing soname links
+  _create_links
+
+  # License (link)
+  install -d "$pkgdir"/usr/share/licenses/
+  ln -s nvidia/ "$pkgdir"/usr/share/licenses/opencl-nvidia
+}
+
+package_nvidia-libgl-full-stable-all() {
+  pkgdesc="NVIDIA driver library symlinks for 'nvidia-utils-full-stable-all'"
+  depends=('nvidia-utils-full-stable-all')
+  provides=('libgl' 'nvidia-libgl')
+  conflicts=('libgl' 'nvidia-libgl' 'mesa<10.1.0-2')
+  cd $_pkg
+
+  # GLX extension for X (link)
+  install -d "$pkgdir"/usr/lib/xorg/modules/extensions/
+  ln -s /usr/lib/nvidia/xorg/modules/extensions/libglx.so.$pkgver \
+        "$pkgdir"/usr/lib/xorg/modules/extensions/libglx.so.$pkgver
+  ln -s libglx.so.$pkgver "$pkgdir"/usr/lib/xorg/modules/extensions/libglx.so.1
+  ln -s libglx.so.$pkgver "$pkgdir"/usr/lib/xorg/modules/extensions/libglx.so
+
+  # OpenGL (link)
+  ln -s /usr/lib/nvidia/libGL.so.$pkgver "$pkgdir"/usr/lib/libGL.so.$pkgver
+  ln -s libGL.so.$pkgver "$pkgdir"/usr/lib/libGL.so.1
+  ln -s libGL.so.$pkgver "$pkgdir"/usr/lib/libGL.so
+
+  # EGL (link)
+  ln -s /usr/lib/nvidia/libEGL.so.1 "$pkgdir"/usr/lib/libEGL.so.1
+  ln -s libEGL.so.1 "$pkgdir"/usr/lib/libEGL.so.$pkgver
+  ln -s libEGL.so.1 "$pkgdir"/usr/lib/libEGL.so
+
+  # OpenGL ES 1 (link)
+  ln -s /usr/lib/nvidia/libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib/libGLESv1_CM.so.$pkgver
+  ln -s libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib/libGLESv1_CM.so.1
+  ln -s libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib/libGLESv1_CM.so
+
+  # OpenGL ES 2 (link)
+  ln -s /usr/lib/nvidia/libGLESv2.so.$pkgver "$pkgdir"/usr/lib/libGLESv2.so.$pkgver
+  ln -s libGLESv2.so.$pkgver "$pkgdir"/usr/lib/libGLESv2.so.2
+  ln -s libGLESv2.so.$pkgver "$pkgdir"/usr/lib/libGLESv2.so
+
+  # License (link)
+  install -d "$pkgdir"/usr/share/licenses/
+  ln -s nvidia/ "$pkgdir"/usr/share/licenses/nvidia-libgl
+}
+
+package_nvidia-utils-full-stable-all() {
+  pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-full-stable-all'"
+  depends=('xorg-server')
+  optdepends=('gtk2: nvidia-settings (GTK+ v2)'
+              'gtk3: nvidia-settings (GTK+ v3)'
+              'opencl-nvidia-full-stable-all: OpenCL support'
+              'xorg-server-devel: nvidia-xconfig')
+  provides=("nvidia-utils=$pkgver" "nvidia-settings")
+  conflicts=('nvidia-utils' 'nvidia-settings')
+  backup=('etc/X11/xorg.conf.d/20-nvidia.conf' 'etc/profile.d/kwin.sh')
+  source=('kwin.sh')
+  install=$pkgname.install
+  cd $_pkg
+  
+  
+  #  enable screentearing fix on kwin
+  install -D -m644  "$srcdir"/kwin.sh "$pkgdir"/etc/profile.d/kwin.sh
+  chmod +x /etc/profile.d/kwin.sh
+  
+
+  # X driver
+  install -D -m755 nvidia_drv.so "$pkgdir"/usr/lib/xorg/modules/drivers/nvidia_drv.so
+
+  # GLX extension for X
+  install -D -m755 libglx.so.$pkgver "$pkgdir"/usr/lib/nvidia/xorg/modules/extensions/libglx.so.$pkgver
+  ln -s libglx.so.$pkgver "$pkgdir"/usr/lib/nvidia/xorg/modules/extensions/libglx.so
+
+  # OpenGL
+  install -D -m755 libGL.so.$pkgver "$pkgdir"/usr/lib/nvidia/libGL.so.$pkgver
+  install -D -m755 libnvidia-glcore.so.$pkgver "$pkgdir"/usr/lib/libnvidia-glcore.so.$pkgver
+  install -D -m755 libGLdispatch.so.0 "$pkgdir"/usr/lib/libGLdispatch.so.0
+  install -D -m755 libOpenGL.so.0 "$pkgdir"/usr/lib/libOpenGL.so.0
+
+  # EGL
+  install -D -m755 libEGL.so.1 "$pkgdir"/usr/lib/nvidia/libEGL.so.1
+  install -D -m755 libEGL_nvidia.so.0 "$pkgdir"/usr/lib/libEGL_nvidia.so.0
+  install -D -m755 libnvidia-eglcore.so.$pkgver "$pkgdir"/usr/lib/libnvidia-eglcore.so.$pkgver
+
+  # OpenGL ES
+  install -D -m755 libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib/nvidia/libGLESv1_CM.so.$pkgver
+  install -D -m755 libGLESv2.so.$pkgver "$pkgdir"/usr/lib/nvidia/libGLESv2.so.$pkgver
+  install -D -m755 libnvidia-glsi.so.$pkgver "$pkgdir"/usr/lib/libnvidia-glsi.so.$pkgver
+
+  # VDPAU (Video Decode and Presentation API for Unix)
+  install -D -m755 libvdpau_nvidia.so.$pkgver "$pkgdir"/usr/lib/vdpau/libvdpau_nvidia.so.$pkgver
+
+  # GPU-accelerated video encoding
+  install -D -m755 libnvidia-encode.so.$pkgver "$pkgdir"/usr/lib/libnvidia-encode.so.$pkgver
+
+  # GTK+ for nvidia-settings
+  install -D -m755 libnvidia-gtk2.so.$pkgver "$pkgdir"/usr/lib/libnvidia-gtk2.so.$pkgver
+  install -D -m755 libnvidia-gtk3.so.$pkgver "$pkgdir"/usr/lib/libnvidia-gtk3.so.$pkgver
+
+  # CUDA (Compute Unified Device Architecture)
+  install -D -m755 libcuda.so.$pkgver "$pkgdir"/usr/lib/libcuda.so.$pkgver
+  install -D -m755 libnvcuvid.so.$pkgver "$pkgdir"/usr/lib/libnvcuvid.so.$pkgver
+
+  # TLS (Thread local storage) support for OpenGL libs
+  install -D -m755 tls/libnvidia-tls.so.$pkgver "$pkgdir"/usr/lib/libnvidia-tls.so.$pkgver
+
+  # GPU monitoring and management
+  install -D -m755 libnvidia-ml.so.$pkgver "$pkgdir"/usr/lib/libnvidia-ml.so.$pkgver
+  install -D -m755 nvidia-smi "$pkgdir"/usr/bin/nvidia-smi
+  install -D -m644 nvidia-smi.1.gz "$pkgdir"/usr/share/man/man1/nvidia-smi.1.gz
+
+  # Helper libs for approved partners' GRID remote apps
+  install -D -m755 libnvidia-ifr.so.$pkgver "$pkgdir"/usr/lib/libnvidia-ifr.so.$pkgver
+  install -D -m755 libnvidia-fbc.so.$pkgver "$pkgdir"/usr/lib/libnvidia-fbc.so.$pkgver
+
+  # create missing soname links
+  _create_links
+
+  # CUDA MPS (Multi Process Service)
+  install -D -m755 nvidia-cuda-mps-control "$pkgdir"/usr/bin/nvidia-cuda-mps-control
+  install -D -m644 nvidia-cuda-mps-control.1.gz "$pkgdir"/usr/share/man/man1/nvidia-cuda-mps-control.1.gz
+  install -D -m755 nvidia-cuda-mps-server "$pkgdir"/usr/bin/nvidia-cuda-mps-server
+ 
+  # nvidia-modprobe
+  install -Dm4755 nvidia-modprobe "$pkgdir"/usr/bin/nvidia-modprobe
+  install -D -m644 nvidia-modprobe.1.gz "$pkgdir"/usr/share/man/man1/nvidia-modprobe.1.gz
+
+  # nvidia-persistenced
+  install -D -m755 nvidia-persistenced "$pkgdir"/usr/bin/nvidia-persistenced
+  install -D -m644 nvidia-persistenced.1.gz "$pkgdir"/usr/share/man/man1/nvidia-persistenced.1.gz
+  install -D -m644 nvidia-persistenced-init/systemd/nvidia-persistenced.service.template \
+                 "$pkgdir"/usr/lib/systemd/system/nvidia-persistenced.service
+  sed -i 's/__USER__/nvidia-persistenced/' "$pkgdir"/usr/lib/systemd/system/nvidia-persistenced.service
+
+  # nvidia-settings
+  install -D -m755 nvidia-settings "$pkgdir"/usr/bin/nvidia-settings
+  install -D -m644 nvidia-settings.1.gz "$pkgdir"/usr/share/man/man1/nvidia-settings.1.gz
+  install -D -m644 nvidia-settings.png "$pkgdir"/usr/share/pixmaps/nvidia-settings.png
+  install -D -m644 nvidia-settings.desktop "$pkgdir"/usr/share/applications/nvidia-settings.desktop
+  sed -e 's:__UTILS_PATH__:/usr/bin:' \
+      -e 's:__PIXMAP_PATH__:/usr/share/pixmaps:' \
+      -i "$pkgdir"/usr/share/applications/nvidia-settings.desktop
+
+  # nvidia-xconfig
+  install -D -m755 nvidia-xconfig "$pkgdir"/usr/bin/nvidia-xconfig
+  install -D -m644 nvidia-xconfig.1.gz "$pkgdir"/usr/share/man/man1/nvidia-xconfig.1.gz
+  install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
+    ln -s libnvidia-cfg.so.$pkgver "$pkgdir"/usr/lib/libnvidia-cfg.so.1
+
+  # Debug
+  install -D -m755 nvidia-bug-report.sh "$pkgdir"/usr/bin/nvidia-bug-report.sh
+  install -D -m755 nvidia-debugdump "$pkgdir"/usr/bin/nvidia-debugdump
+
+  # Disable logo splash
+  install -D -m644 "$srcdir"/20-nvidia.conf "$pkgdir"/etc/X11/xorg.conf.d/20-nvidia.conf
+
+  # Vendor profiles
+  install -D -m644 nvidia-application-profiles-$pkgver-rc \
+                 "$pkgdir"/usr/share/nvidia/nvidia-application-profiles-$pkgver-rc
+  install -D -m644 nvidia-application-profiles-$pkgver-key-documentation \
+                 "$pkgdir"/usr/share/nvidia/nvidia-application-profiles-$pkgver-key-documentation
+
+  # Documentation
+  install -D -m644 README.txt "$pkgdir"/usr/share/doc/nvidia/README
+  install -D -m644 NVIDIA_Changelog "$pkgdir"/usr/share/doc/nvidia/NVIDIA_Changelog
+  cp -r html "$pkgdir"/usr/share/doc/nvidia/
+  ln -s nvidia/ "$pkgdir"/usr/share/doc/nvidia-utils
+
+  # Licenses
+  install -D -m644 LICENSE "$pkgdir"/usr/share/licenses/nvidia/LICENSE
+  ln -s nvidia/ "$pkgdir"/usr/share/licenses/nvidia-utils
+}
+
+package_nvidia-full-stable-all() {
+  pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries) (stable version)"
+  depends=("nvidia-utils-full-stable-all>=$pkgver" 'libgl')
+  provides=('nvidia')
+  conflicts=('nvidia-96xx' 'nvidia-173xx' 'nvidia')
+  install=$pkgname.install
+
+  # Install for all kernels
+  for _path in $(find /usr/lib/modules/extramodules-*/version -printf '%h\n'); do
+    _extramodules=$(cat $_path/version)
+
+    # Install
+    install -D -m644 $_pkg/kernel-$_extramodules/nvidia.ko \
+           "$pkgdir"/$_path/nvidia.ko
+
+    # Install UVM Module: http://devblogs.nvidia.com/parallelforall/unified-memory-in-cuda-6/
+
+        install -D -m644 $_pkg/kernel-$_extramodules/nvidia-uvm.ko \
+               "$pkgdir"/$_path/nvidia-uvm.ko
+   
+
+    # Install Nvidia Modeset module:
+    #
+    # "nvidia-modeset.ko does not provide any new user-visible functionality or interfaces to third party applications.
+    #  However, in a later release, nvidia-modeset.ko will be used as a basis for the modesetting interface provided by
+    #  the kernel's direct rendering manager (DRM)."
+    install -D -m644 $_pkg/kernel-$_extramodules/nvidia-modeset.ko \
+           "$pkgdir"/$_path/nvidia-modeset.ko
+
+    # Compress
+    gzip "$pkgdir"/$_path/nvidia*.ko
+  done
+
+  # Blacklist Nouveau
+  install -d "$pkgdir"/usr/lib/modprobe.d/
+  echo "blacklist nouveau" >> "$pkgdir"/usr/lib/modprobe.d/nvidia.conf
+}
+
+package_lib32-opencl-nvidia-full-stable-all() {
+  pkgdesc="NVIDIA's OpenCL implemention for 'lib32-nvidia-utils-full-stable-all' "
+  depends=('lib32-libcl' 'lib32-zlib' 'lib32-gcc-libs')
+  optdepends=('opencl-headers: headers necessary for OpenCL development')
+  provides=('lib32-opencl-nvidia')
+  conflicts=('lib32-opencl-nvidia')
+  cd $_pkg
+
+  # OpenCL
+  install -D -m755 libnvidia-compiler.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-compiler.so.$pkgver
+  install -D -m755 libnvidia-opencl.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-opencl.so.$pkgver
+
+  # create missing soname links
+  _create_links
+
+  # License (link)
+  install -d "$pkgdir"/usr/share/licenses/
+  ln -s nvidia-utils/ "$pkgdir"/usr/share/licenses/lib32-opencl-nvidia
+}
+
+package_lib32-nvidia-libgl-full-stable-all() {
+  pkgdesc="NVIDIA driver library symlinks for 'lib32-nvidia-utils-full-stable-all'"
+  depends=('lib32-nvidia-utils-full-stable-all')
+  provides=('lib32-libgl' 'lib32-nvidia-libgl')
+  conflicts=('lib32-libgl' 'lib32-nvidia-libgl' 'lib32-mesa<10.1.0-2')
+  cd $_pkg
+
+  # OpenGL (link)
+  install -d "$pkgdir"/usr/lib32/
+  ln -s /usr/lib32/nvidia/libGL.so.$pkgver "$pkgdir"/usr/lib32/libGL.so.$pkgver
+  ln -s libGL.so.$pkgver "$pkgdir"/usr/lib32/libGL.so.1
+  ln -s libGL.so.$pkgver "$pkgdir"/usr/lib32/libGL.so
+
+  # EGL (link)
+  ln -s /usr/lib32/nvidia/libEGL.so.1 "$pkgdir"/usr/lib32/libEGL.so.1
+  ln -s libEGL.so.1 "$pkgdir"/usr/lib32/libEGL.so.$pkgver
+  ln -s libEGL.so.1 "$pkgdir"/usr/lib32/libEGL.so
+
+  # OpenGL ES 1 (link)
+  ln -s /usr/lib32/nvidia/libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib32/libGLESv1_CM.so.$pkgver
+  ln -s libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib32/libGLESv1_CM.so.1
+  ln -s libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib32/libGLESv1_CM.so
+
+  # OpenGL ES 2 (link)
+  ln -s /usr/lib32/nvidia/libGLESv2.so.$pkgver "$pkgdir"/usr/lib32/libGLESv2.so.$pkgver
+  ln -s libGLESv2.so.$pkgver "$pkgdir"/usr/lib32/libGLESv2.so.2
+  ln -s libGLESv2.so.$pkgver "$pkgdir"/usr/lib32/libGLESv2.so
+
+  # License (link)
+  install -d "$pkgdir"/usr/share/licenses/
+  ln -s nvidia-utils/ "$pkgdir"/usr/share/licenses/lib32-nvidia-libgl
+}
+
+package_lib32-nvidia-utils-full-stable-all() {
+  pkgdesc="NVIDIA driver utilities and libraries for 'nvidia-full-stable-all' (32-bit)"
+  depends=('lib32-zlib' 'lib32-gcc-libs')
+  optdepends=('lib32-opencl-nvidia-full-stable-all: OpenCL support')
+  provides=("lib32-nvidia-utils=$pkgver")
+  conflicts=('lib32-nvidia-utils')
+  cd $_pkg
+
+  # OpenGL
+  install -D -m755 32/libGL.so.$pkgver "$pkgdir"/usr/lib32/nvidia/libGL.so.$pkgver
+  install -D -m755 32/libnvidia-glcore.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-glcore.so.$pkgver
+  install -D -m755 32/libGLdispatch.so.0 "$pkgdir"/usr/lib32/libGLdispatch.so.0
+  install -D -m755 32/libOpenGL.so.0 "$pkgdir"/usr/lib32/libOpenGL.so.0
+
+  # EGL
+  install -D -m755 32/libEGL.so.1 "$pkgdir"/usr/lib32/nvidia/libEGL.so.1
+  install -D -m755 32/libEGL_nvidia.so.0 "$pkgdir"/usr/lib32/libEGL_nvidia.so.0
+  install -D -m755 32/libnvidia-eglcore.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-eglcore.so.$pkgver
+
+  # OpenGL ES
+  install -D -m755 32/libGLESv1_CM.so.$pkgver "$pkgdir"/usr/lib32/nvidia/libGLESv1_CM.so.$pkgver
+  install -D -m755 32/libGLESv2.so.$pkgver "$pkgdir"/usr/lib32/nvidia/libGLESv2.so.$pkgver
+  install -D -m755 32/libnvidia-glsi.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-glsi.so.$pkgver
+
+  # VDPAU (Video Decode and Presentation API for Unix)
+  install -D -m755 32/libvdpau_nvidia.so.$pkgver "$pkgdir"/usr/lib32/vdpau/libvdpau_nvidia.so.$pkgver
+
+  # GPU-accelerated video encoding
+  install -D -m755 32/libnvidia-encode.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-encode.so.$pkgver
+
+  # CUDA (Compute Unified Device Architecture)
+  install -D -m755 32/libcuda.so.$pkgver "$pkgdir"/usr/lib32/libcuda.so.$pkgver
+  install -D -m755 32/libnvcuvid.so.$pkgver "$pkgdir"/usr/lib32/libnvcuvid.so.$pkgver
+
+  # TLS (Thread local storage) support for OpenGL libs
+  install -D -m755 32/tls/libnvidia-tls.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-tls.so.$pkgver
+
+  # GPU monitoring and management
+  install -D -m755 32/libnvidia-ml.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-ml.so.$pkgver
+
+  # Helper libs for approved partners' GRID remote apps
+  install -D -m755 32/libnvidia-ifr.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-ifr.so.$pkgver
+  install -D -m755 32/libnvidia-fbc.so.$pkgver "$pkgdir"/usr/lib32/libnvidia-fbc.so.$pkgver
+
+  # create missing soname links
+  _create_links
+
+  # License (link)
+  install -d "$pkgdir"/usr/share/licenses/
+  ln -s nvidia-utils/ "$pkgdir"/usr/share/licenses/lib32-nvidia-utils
+}
+
+# Global pkgdesc and depends are here so that they will be picked up by CCR
+pkgdesc="Full NVIDIA drivers' package for all kernels on the system (drivers and shared utilities and libraries) (the latest STABLE version)"

@@ -1,0 +1,131 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+# WARNING: The configure script will automatically enable any optional
+# features it finds support for on your system. If you want to avoid
+# linking against something you have installed, you'll have to disable
+# it in the configure below. The package() script will attempt to
+# update the dependencies based on dynamic libraries when packaging.
+
+
+pkgname=mpv-ahjolinna-git-build
+true && pkgname=mpv-git
+_gitname=mpv
+pkgver=42385.g832cb56
+pkgrel=1
+pkgdesc='Video player based on MPlayer/mplayer2 (git version)'
+arch=('x86_64')
+license=('GPL')
+url='http://mpv.io'
+screenshot='https://i.warosu.org/data/g/img/0475/21/1429034725169.png'
+_undetected_depends=('desktop-file-utils' 'hicolor-icon-theme' 'xdg-utils')
+depends=('ffmpeg' "${_undetected_depends[@]}")
+optdepends=('youtube-dl: for --ytdl'
+            'yle-dl: for watching yle areena videos'
+            'libva-intel-driver: hardware acceleration support for Intel GPU'
+            'libvdpau: hardware acceleration support for AMD/NVIDIA gpu'
+            'vapoursynth-plugin-mvtools: Realtime motion interpolating playback in mpv')
+makedepends=('git' 'python3-docutils' 'x264' 'x265' 'wayland' 'samba' 'vapoursynth')
+provides=('mpv')
+conflicts=('mpv' 'mpv-build-git' 'x265-hg')
+options=('!emptydirs')
+install=mpv.install
+source=('git+https://github.com/mpv-player/mpv'
+        'find-deps.py'
+         'mpv-hq.desktop'
+         'mpv.tar.gz'
+         'mpv-lq.desktop'
+         'mpv-mq.desktop'
+         'mpv-MVtools.desktop')
+
+sha256sums=('SKIP'
+            'ce974e160347202e0dc63f6a7a5a89e52d2cc1db2d000c661fddb9dc1d007c02'
+            '7b732a8c0dff2188f4830fd6ec536d18c60f7354169cf1979efe259a332aae21'
+            '44ef19bb516b7acfb03b4d7861a01bc44e877620dbdb25fa16d13ad1cbbf9491'
+            'f909b60b5c75519abcc6a563688fdd5496e4efbcbe1fd123aee33c72c635b68d'
+            'bea6844d14589ce7cd319102169d68c7ca553cc0c13ca16013d3f8f674511626'
+            '56c0c5b15bbe8152d4c2a312f8683ca47cf7c886539484aebf930bd67f37912a')
+
+
+pkgver() {
+  cd "$srcdir/$_gitname"
+  #_curtag="$(git rev-list --tags --max-count=1)"
+  #_tagver="$(git describe --tags $_curtag | sed -e 's:^v::' -e 's:-:_:g')"
+  #_commits="$(git rev-list --count HEAD --since=$_tagver)"
+  #_sha="$(git rev-parse --short HEAD)"
+  #printf "%s_%s_g%s" $_tagver $_commits $_sha
+  echo "$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+    
+      # Create binary resolution
+  echo "#!/bin/bash" > resolution
+  echo "1920:1080" >> resolution
+  
+   # point python to python3
+sed -i 's|#!/usr/bin/env python|#!/usr/bin/env python|' ${srcdir}/${_gitname}/bootstrap.py
+# initialize
+  cd "$srcdir/$_gitname"
+  ./bootstrap.py
+  sed -i 's/vendor-completions/site-functions/' wscript_build.py
+ 
+ # waf looking for python2...
+sed -i 's|#!/usr/bin/env python|#!/usr/bin/env python|' ${srcdir}/${_gitname}/waf
+}
+ 
+build() {
+  cd "$srcdir/${_gitname}"
+
+  CFLAGS="$CFLAGS -I/usr/include/samba-4.0"
+
+  ./waf configure --prefix=/usr \
+        --confdir=/etc/mpv \
+        --enable-libmpv-shared \
+        --enable-cdda \
+        --enable-zsh-comp \
+        --enable-alsa \
+        --enable-pulse \
+        --enable-openal \
+        --enable-wayland \
+        --enable-gl-wayland \
+        --enable-egl-x11 \
+        --enable-libsmbclient \
+        --enable-dvdread \
+        --enable-libv4l2 \
+        --enable-gpl3 \
+        --enable-vapoursynth \
+
+  ./waf build
+}
+
+package() {
+  cd "$srcdir/${_gitname}"
+  
+  ./waf install --destdir="$pkgdir"
+
+  install -d "$pkgdir"/usr/share/doc/mpv/examples
+  install -m644 etc/{input,example}.conf \
+          "$pkgdir"/usr/share/doc/mpv/examples
+  install -m644 DOCS/{encoding.rst,tech-overview.txt} \
+          "$pkgdir"/usr/share/doc/mpv
+      
+  #install configure files
+  cp -R ${srcdir}/mpv/etc/ ${pkgdir}/etc/mpv/
+    install -d "${pkgdir}/etc/mpv/"
+  cp -R ${srcdir}/mpv/etc*/* ${pkgdir}/etc/mpv
+ 
+ # Install binary file
+  install -Dm755 "${srcdir}/resolution" "${pkgdir}/usr/bin/resolution"
+ 
+  # install the .desktop files
+  install -Dm644 "${srcdir}/mpv-lq.desktop" "${pkgdir}/usr/share/applications/mpv-lq.desktop"
+  install -Dm644 "${srcdir}/mpv-mq.desktop" "${pkgdir}/usr/share/applications/mpv-mq.desktop"
+  install -Dm644 "${srcdir}/mpv-hq.desktop" "${pkgdir}/usr/share/applications/mpv-hq.desktop"
+  install -Dm644 "${srcdir}/mpv-MVtools.desktop" "${pkgdir}/usr/share/applications/mpv-MVtools.desktop"
+
+  # Update dependencies automatically based on dynamic libraries
+  _detected_depends=($("$srcdir"/find-deps.py "$pkgdir"/usr/{bin/mpv,lib/libmpv.so}))
+  echo 'Auto-detected dependencies:'
+  echo "${_detected_depends[@]}" | fold -s -w 79 | sed 's/^/ /'
+  depends=("${_detected_depends[@]}" "${_undetected_depends[@]}")
+}

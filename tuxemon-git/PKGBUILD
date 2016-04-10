@@ -1,0 +1,40 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+pkgname=tuxemon-git
+pkgver=r374.5ab0f6e
+pkgrel=1
+pkgdesc="A free, open source monster-fighting RPG."
+arch=('x86_64')
+url="http://www.tuxemon.org"
+screenshot='http://www.tuxemon.org/images/featurette-01.png'
+license=('GPL3')
+groups=('games')
+depends=('python3' 'python3-pygame-hg' 'python3-pytmx' 'python3-yapsy' 'python3-netifaces' 'python3-neteria')
+makedepends=('git')
+optdepends=('libShake: rumble library for Linux.')
+provides=("${pkgname%-git}")
+conflicts=("${pkgname%-git}")
+install=${pkgname}.install
+
+source=('git://github.com/Tuxemon/Tuxemon.git'
+        'tuxemon_icon.png'
+        'Tuxemon.desktop'
+        'tuxemon-git.install')
+
+md5sums=('SKIP'
+         '204f2d6b8d3eaf10f6c8e56aad2432aa'
+         '24e1f0500513be0ea06efaa229c5845b'
+         '57273ad0e235c4bcb24caa17cf9eeef0')
+
+
+_gitname=Tuxemon
+
+pkgver() {
+  cd "${srcdir}/${_gitname}"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+package() {
+    install -d ${pkgdir}/usr/share/
+  install -Dm644 "${srcdir}/tuxemon_icon.png" "${pkgdir}/usr/share/pixmaps/tuxemon_icon.png"
+  install -Dm644 "${srcdir}/Tuxemon.desktop" "${pkgdir}/usr/share/applications/Tuxemon.desktop"
+       mv ${srcdir}/${_gitname}/tuxemon/ ${pkgdir}/usr/share/tuxemon
+}

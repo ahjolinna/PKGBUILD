@@ -1,0 +1,30 @@
+pkgbase = freetype2-infinality
+	pkgdesc = TrueType font rendering library with infinality patch
+	pkgver = 2.6
+	pkgrel = 2
+	url = https://github.com/bohoomil/fontconfig-ultimate
+	install = install.sh
+	arch = i686
+	arch = x86_64
+	license = GPL
+	depends = zlib
+	depends = bzip2
+	depends = sh
+	optdepends = fontconfig-infinality: Infinality package for fontconfig (required)
+	provides = freetype2=2.6
+	conflicts = freetype2
+	options = !libtool
+	backup = etc/profile.d/infinality-settings.sh
+	source = http://downloads.sourceforge.net/sourceforge/freetype/freetype-2.6.tar.bz2
+	source = infinality-settings.sh
+	source = 01-freetype-2.6-enable-valid.patch
+	source = 02-upstream-2015.08.24.patch.xz
+	source = 03-infinality-2.6-2015.08.24.patch
+	sha256sums = 8469fb8124764f85029cc8247c31e132a2c5e51084ddce2a44ea32ee4ae8347e
+	sha256sums = 21192ce47be46ccd44e8aeea99754d4e5e38cb52717f752d67c319c74fea2716
+	sha256sums = 086c9874ba5217dab419ac03dbc5ad6480aaa67b3c9d802f7181d8a3e007f8eb
+	sha256sums = 62eaa124f09916e237be994890178fb041b3648223f08429566df3a962971d8a
+	sha256sums = 241de84ca25d7ff106a3ebd5121d12a315abe5a72771957bd674e8b2e41c97d2
+
+pkgname = freetype2-infinality
+

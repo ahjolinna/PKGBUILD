@@ -1,0 +1,29 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+#
+# PKGBUILD for Emerald KDE Icon Theme
+#
+
+pkgname=emerald-icon-theme-kde
+pkgdesc="Clean and fresh icons theme. Based on Flattr (Nitrux OS) and Breeze (Plasma 5) icon themes. More KDE integrated version."
+pkgver=2.1
+pkgrel=0
+arch=('any')
+url="http://kde-look.org/content/show.php/Emerald+KDE?content=169001"
+screenshot='http://pre13.deviantart.net/0342/th/pre/f/2014/299/3/1/emerald_icons_theme_by_vinceliuice-d846l3k.jpg'
+license=('CC BY-NC-SA 4.0')
+makedepends=('p7zip' 'librsvg')
+optdepends=()
+conflicts=('emerald-icon-theme')
+source=('http://orig14.deviantart.net/3acb/f/2015/308/b/e/emerald_icons_theme_by_vinceliuice-d846l3k.7z')
+md5sums=('a6985e56ad932ac24ebc54836a18e128')
+
+package() {
+
+  install -d -m 755 "$pkgdir"/usr/share/icons/Emerald
+  install -d -m 755 "$pkgdir"/usr/share/icons/Emerald-Dark
+
+  cd $srcdir/Emerald
+  cp -r . "$pkgdir"/usr/share/icons/Emerald/
+  cd $srcdir/Emerald-Dark
+  cp -r . "$pkgdir"/usr/share/icons/Emerald-Dark/
+}

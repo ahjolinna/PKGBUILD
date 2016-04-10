@@ -1,0 +1,91 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+pkgname=steam-full-build
+_pkgname=steam
+pkgver=1.0.0.51
+pkgrel=1
+pkgdesc="this should have all the needed dependencies for the current games"
+arch=("x86_64")
+url="http://steampowered.com/"
+screenshot='http://img03.deviantart.net/d3dc/i/2014/100/c/f/steam_in_chakra___promotional_by_malcer-d7dx8gy.png'
+license=('custom')
+
+depends=('bash' 'desktop-file-utils' 'hicolor-icon-theme' 'curl'
+         'dbus' 'freetype2'  'gdk-pixbuf2' 'ttf-font' 'zenity'
+         'libindicator-gtk2' 'wqy-microhei' 'libindicator-gtk3' 'dhcp-client'
+         'networkmanager' 'wpa_supplicant' 'mono' 'mono-addins')
+
+optdepends=('lib32-mesa: for open source driver users'
+         'lib32-catalyst-utils: for AMD Catalyst users'
+         'lib32-nvidia-utils: for NVIDIA proprietary blob users'
+         'lib32-flashplugin: for flash video'
+         'freshplayerplugin: alternative flash video support')
+
+
+#Common game deps
+depends=('lib32-sdl' 'lib32-sdl_image' 'lib32-sdl_mixer' 'lib32-sdl2' 'lib32-sdl2_image'
+         'lib32-tcp_wrappers' 'lib32-speex' 'lib32-gperftools' 'lib32-libcurl-gnutls'
+         'lib32-libgl' 'lib32-gcc-libs' 'lib32-libx11''iproute2' 'lib32-cracklib' 'lib32-dbus-glib'
+         'lib32-gconf' 'lib32-glew1.10' 'lib32-gdk-pixbuf2' 'lib32-gtk2' 'lib32-js17' 'lib32-libappindicator-gtk2'
+         'lib32-libgcrypt15' 'lib32-libjpeg6' 'lib32-libnl'  'lib32-gnutls28' 'lib32-libxss' 
+         'lib32-nss' 'lib32-libpng12' 'lib32-libpulse' 'lib32-libsoup' 'lib32-libtirpc'
+         'lib32-libudev0' 'lib32-libusb' 'lib32-libvpx' 'lib32-libxinerama' 'lib32-libnm-glib46'
+         'lib32-openal' 'lib32-pam' 'lib32-pango' 'lib32-polkit' 'lib32-libgudev' 'lib32-alsa-plugins')
+
+
+
+provides=('steam')
+conflicts=('steam' 'steam-chakra')
+install=steam.install
+source=("http://repo.steampowered.com/${_pkgname}/pool/${_pkgname}/s/${_pkgname}/${_pkgname}_${pkgver}.tar.gz"
+        'lib32-flashplugin-path.patch'
+        'alsa_sdl_audiodriver.patch'
+        'lib32_path_and_steam_runtime.patch'
+        'steam-clean.desktop'
+        'steam.desktop'
+        'steam-clean'
+        '51-steam.rules'
+        '80-steam-controller-permission.rules')
+
+sha256sums=('bf766db05fcc3a8079e7e514accfbd2503813a3c70ff8336aa93e554ed7719be'
+            '87b9e9f74709a43fb8424d7bb3074fb576f72c56d78a045e3b4ed4719600b0fa'
+            '174a110eda1c9d5b1c92a4490b266b31918559bbf8292a94905221c92da4bc0e'
+            '449532fd8e8d9c55d1b0f98b98855829453d1ec9ea53e82a00e065e17d23bf58'
+            '8800f64bf94f593c11f73af021bb4a7d7378cbb475bbc33c32b799c06dd2f118'
+            'd5b1e77861e92bb43405f25394c0b5d4e5e0cb04b8527ad3e813af9595468756'
+            '9acc9a8952018654e696619b33cd94c351d89a996c082855d723a5f3d9cec8a9'
+            '12d6d0a96e66f10eaeee94ddb6d1048c0e40a8132521fa7b00b844d6454d641c'
+            'ab6efa7c0aaf408f51eee8e1d83ec07004730848bdef3ab9e091847fb915f240')
+
+
+prepare() {
+    patch -d "${_pkgname}" -Np1 -i "${srcdir}/lib32-flashplugin-path.patch"
+    patch -d "${_pkgname}" -Np1 -i "${srcdir}/alsa_sdl_audiodriver.patch"
+    patch -d "${_pkgname}" -Np1 -i "${srcdir}/lib32_path_and_steam_runtime.patch"
+}
+
+
+package() {
+    make -C "${_pkgname}" DESTDIR="${pkgdir}" install
+
+    # Install license
+    install -Dm644 "${pkgdir}/usr/share/doc/steam/steam_install_agreement.txt" "${pkgdir}/usr/share/licenses/steam-manjaro/LICENSE"
+
+    # blank steamdeps because apt-get
+    ln -sf /bin/true "${pkgdir}/usr/bin/steamdeps"
+
+    install -Dm644 ${srcdir}/80-steam-controller-permission.rules $pkgdir/usr/lib/udev/rules.d/80-steam-controller-permission.rules
+
+    # Replace orig launcher
+    rm "${pkgdir}/usr/share/applications/steam.desktop"
+    install -Dm644 'steam.desktop' "${pkgdir}/usr/share/applications/steam.desktop"
+    install -Dm644 'steam-clean.desktop' "${pkgdir}/usr/share/applications/steam-clean.desktop"
+
+    # Library cleaner script (to be used if needed)
+    install -Dm755 'steam-clean' "${pkgdir}/usr/bin/steam-clean"
+
+    # Polkit rules for LibNM
+    mkdir -p "${pkgdir}/etc/polkit-1/rules.d"
+    chmod 750 "${pkgdir}/etc/polkit-1/rules.d"
+    install -Dm644 "${srcdir}/51-steam.rules" "${pkgdir}/etc/polkit-1/rules.d/51-steam.rules"
+}

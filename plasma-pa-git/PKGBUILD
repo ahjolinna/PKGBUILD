@@ -1,0 +1,44 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+_srcname=plasma-pa
+pkgname=${_srcname}-git
+pkgver=r354.9ac694a
+pkgrel=1
+pkgdesc='Volume applet for Plasma'
+arch=('x86_64')
+url='http://quickgit.kde.org/?p=plasma-pa.git'
+license=('GPL' 'LGPL' 'FDL')
+depends=('kconfigwidgets' 'kcoreaddons' 'ki18n' 'kdeclarative' 'plasma-framework' 'pulseaudio' 'glib2')
+makedepends=('pkg-config' 'extra-cmake-modules' 'kdoctools' 'git')
+provides=('plasma-volume-control' 'plasma-pa')
+conflicts=('plasma-volume-control' 'plasma-volume-control-git' 'plasma-pa')
+source=('git://anongit.kde.org/plasma-pa.git')
+md5sums=('SKIP')
+
+pkgver() {
+  cd ${srcdir}/${_srcname}
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  mkdir -p ${srcdir}/${_srcname}/build
+}
+
+build() {
+  cd ${srcdir}/${_srcname}/build
+  cmake .. \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_SKIP_RPATH=ON \
+    -DLIB_INSTALL_DIR=lib \
+    -DSYSCONF_INSTALL_DIR=/etc \
+    -DQML_INSTALL_DIR=/usr/lib/qt5/qml \
+    -DPLUGIN_INSTALL_DIR=/usr/lib/qt5/plugins \
+    -DBUILD_TESTING=OFF 
+  make
+}
+
+package() {
+  cd ${srcdir}/${_srcname}/build
+  make DESTDIR="${pkgdir}" install
+}

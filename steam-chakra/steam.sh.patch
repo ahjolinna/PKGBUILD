@@ -1,0 +1,94 @@
+*** a/steam.sh	2015-05-05 22:50:40.000000000 +0200
+--- b/steam.sh	2015-10-17 15:00:23.000000000 +0200
+***************
+*** 55,61 ****
+  	--error)
+  		title=$"Error"
+  		;;
+! 	--warning)
+  		title=$"Warning"
+  		;;
+  	*)
+--- 55,61 ----
+  	--error)
+  		title=$"Error"
+  		;;
+! 	--sorry)
+  		title=$"Warning"
+  		;;
+  	*)
+***************
+*** 67,73 ****
+  	echo -e "$title: $*"
+  
+  	if [ -z "$STEAMOS" ]; then
+! 		if ! zenity "$style" --text="$*" 2>/dev/null; then
+  			# Save the prompt in a temporary file because it can have newlines in it
+  			tmpfile="$(mktemp || echo "/tmp/steam_message.txt")"
+  			echo -e "$*" >"$tmpfile"
+--- 67,73 ----
+  	echo -e "$title: $*"
+  
+  	if [ -z "$STEAMOS" ]; then
+! 		if ! kdialog "$style" "$*" 2>/dev/null; then
+  			# Save the prompt in a temporary file because it can have newlines in it
+  			tmpfile="$(mktemp || echo "/tmp/steam_message.txt")"
+  			echo -e "$*" >"$tmpfile"
+***************
+*** 97,108 ****
+  			answer=accepted
+  		else
+  			answer=declined
+! 			output=$(zenity --width 650 --height 500 --text-info --title=$"Steam Install Agreement" --filename="$LICENSE" --checkbox=$"I have read and accept these terms." 2>&1)
+  			STATUS=$?
+! 			if echo $output | grep "status 1:" >/dev/null; then
+! 				# Zenity couldn't launch a window
+! 				STATUS=-1
+! 			fi
+  			case $STATUS in
+  			0)	# The agreement was accepted
+  				answer=accepted
+--- 97,105 ----
+  			answer=accepted
+  		else
+  			answer=declined
+! 			kdialog --textbox $LICENSE 650 500 --title=$"Steam Install Agreement"
+  			STATUS=$?
+! 	
+  			case $STATUS in
+  			0)	# The agreement was accepted
+  				answer=accepted
+***************
+*** 314,320 ****
+  
+  function download_archive()
+  {
+! 	curl -#Of "$2" 2>&1 | tr '\r' '\n' | sed 's,[^0-9]*\([0-9]*\).*,\1,' | zenity --progress --auto-close --no-cancel --width 400 --text="$1\n$2"
+  	return ${PIPESTATUS[0]}
+  }
+  
+--- 311,317 ----
+  
+  function download_archive()
+  {
+! 	curl -#Of "$2" 2>&1 | tr '\r' '\n' | sed 's,[^0-9]*\([0-9]*\).*,\1,' | kdialog --progressbar "$1\n$2" start
+  	return ${PIPESTATUS[0]}
+  }
+  
+***************
+*** 332,338 ****
+  		;;
+  	esac
+  	if [ "${BF}" ]; then
+! 		tar --blocking-factor=${BF} --checkpoint=1 --checkpoint-action='exec=echo $TAR_CHECKPOINT' -xf "$2" -C "$3" | zenity --progress --auto-close --no-cancel --width 400 --text="$1"
+  		return ${PIPESTATUS[0]}
+  	else
+  		echo "$1"
+--- 329,335 ----
+  		;;
+  	esac
+  	if [ "${BF}" ]; then
+! 		tar --blocking-factor=${BF} --checkpoint=1 --checkpoint-action='exec=echo $TAR_CHECKPOINT' -xf "$2" -C "$3" | kdialog --progressbar "$1" start
+  		return ${PIPESTATUS[0]}
+  	else
+  		echo "$1"

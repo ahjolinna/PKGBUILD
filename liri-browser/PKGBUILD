@@ -1,0 +1,62 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+_pkgname=liri-browser
+pkgname=$_pkgname
+pkgver=0.3.r232.gd9281ee
+pkgrel=1
+pkgdesc="A Web Browser using the QML Material framework from the Papyros Project"
+arch=("x86_64")
+url="https://github.com/liri-browser/liri-browser"
+license=("GPLv3")
+depends=("qt5-base" "qt5-webengine" "qml-material" "qt5-multimedia")
+makedepends=("git")
+provides=("$_pkgname" "$pkgname-git")
+conflicts=("$_pkgname-git")
+install=$pkgname.install
+source=("$pkgname::git+https://github.com/liri-project/liri-browser.git"
+        "liri-browser.sh" "liri-browser.desktop" "$pkgname.install")
+sha256sums=('SKIP'
+            '99a40bfa09714058bb4c4c459267b60d18a8980114c3b88066d1462052aa3d93'
+            'b4d6d873065113430170981ade78f2a85a07c3764f4476c6c3bfe281de10f088'
+            'd63c805a874d8fcb93125bf3f648600ab77bc7dc5d3eaa296e22a81fb0733137')
+
+pkgver() {
+    cd "$pkgname"
+    # cutting off 'foo-' prefix that presents in the git tag
+    git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "$srcdir/$pkgname"
+	qmake liri-browser.pro
+	make QMAKE=/usr/lib/qt5/bin/qmake
+}
+
+package() {
+	cd "$srcdir/$pkgname"
+	make INSTALL_ROOT="$pkgdir" install
+
+  mkdir -p "$pkgdir"/usr/bin
+  mkdir -p "$pkgdir"/usr/share/applications
+
+  for i in 16x16 22x22 32x32 48x48 64x64 128x128 256x256; do
+    install -Dm644 "$srcdir"/"$pkgname"/icons/liri-browser.png \
+                   "$pkgdir"/usr/share/icons/hicolor/$i/apps/liri-browser.png
+  done
+  install -m755 "$srcdir"/liri-browser.sh \
+                "$pkgdir"/usr/bin/liri-browser
+  install -m755 "$srcdir"/liri-browser.desktop \
+                "$pkgdir"/usr/share/applications/liri-browser.desktop
+}
+
+# Additional functions to generate a changelog
+
+changelog() {
+    cd "$pkgname"
+    git log $1..HEAD --no-merges --format=" * %s"
+}
+
+gitref() {
+    cd "$pkgname"
+    git rev-parse HEAD
+}

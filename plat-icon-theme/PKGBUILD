@@ -1,0 +1,26 @@
+# Maintainer: ahjolinna <ahjolinna@yahoo.com>
+
+_gitname=Plat
+_pkgname=Plat
+pkgname=('plat-icon-theme')
+pkgver=3.6
+pkgrel=1
+pkgdesc="Plat is a flat icon theme. It has material design colors and comes with a long shadow."
+arch=('any')
+makedepends=('git')
+url="https://github.com/MichaelTiebesl/${_gitname}"
+screenshot="https://camo.githubusercontent.com/86cc26cdae4f7e92d5b03f859e09dd3fd31a1861/687474703a2f2f66756e6b79696d672e636f6d2f692f32386b61612e706e67"
+license=('GPL3')
+options=('!strip')
+conflicts=('plat-icon-theme')
+source=("git+${url}.git")
+sha256sums=('SKIP')
+
+
+package() {
+    install -d ${pkgdir}/usr/share/icons
+    cp -r ${srcdir}/${_gitname}/${_pkgname} ${pkgdir}/usr/share/icons/${_pkgname}
+    find ${pkgdir}/usr -type f -exec chmod 644 {} \;
+    find ${pkgdir}/usr -type d -exec chmod 755 {} \;
+} 
+
